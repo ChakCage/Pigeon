@@ -1,38 +1,58 @@
-from core.tasks import add_task, complete_task, delete_task, list_tasks
+from fastapi import FastAPI, HTTPException
+from core.tasks import TaskService, TaskNotFoundError
+from schemas.task import TaskSchema, TaskCreate
+
+app = FastAPI()
+
+service = TaskService()
+print("NEW MAIN LOADED")
+
+@app.get("/")
+def home():
+    return {"message": "Hello FastAPI!"}
 
 
-def main():
-    tasks = []
-
-    add_task(tasks, "Learn Python")
-    add_task(tasks, "Build Todo List")
-    add_task(tasks, "Practice Git")
-    assert tasks == [
-        {"id": 1, "title": "Learn Python", "completed": False},
-        {"id": 2, "title": "Build Todo List", "completed": False},
-        {"id": 3, "title": "Practice Git", "completed": False},
-    ]
-    print("All tasks:")
-    list_tasks(tasks)
-
-    complete_task(tasks, 2)
-    assert tasks[1]["completed"] is True
-    print("\nAfter completing task 2:")
-    list_tasks(tasks)
-
-    delete_task(tasks, 1)
-    assert [task["id"] for task in tasks] == [2, 3]
-    print("\nAfter deleting task 1:")
-    list_tasks(tasks)
-
-    complete_task(tasks, 999)
-    delete_task(tasks, 999)
-    assert tasks == [
-        {"id": 2, "title": "Build Todo List", "completed": True},
-        {"id": 3, "title": "Practice Git", "completed": False},
-    ]
-    print("\nAll checks passed.")
+@app.get("/tasks", response_model=list[TaskSchema])
+def get_tasks():
+    return service.list_tasks()
 
 
-if __name__ == "__main__":
-    main()
+
+@app.post("/tasks", response_model=TaskSchema)
+def create_task(task: TaskCreate):
+    print("NEW POST VERSION")
+    return service.add_task(task.title)
+
+
+@app.patch("/tasks/{task_id}", response_model=TaskSchema )
+def complete_task(task_id: int):
+    try:
+        task = service.complete_task(task_id)
+
+        return {
+            "id": task.id,
+            "title": task.title,
+            "completed": task.completed
+        }
+
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: int):
+    try:
+        service.delete_task(task_id)
+
+        return {
+            "message": "Task deleted"
+        }
+
+    except TaskNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
