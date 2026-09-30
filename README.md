@@ -8,3 +8,11 @@ For Pigeon Practice
 1. Создать виртуальное окружение python -m venv .venv
 2. Активировать виртуальное окружение .venv\Scripts\activate.bat
 3. Установить зависимости из requirements.txt pip install -r requirements.txt
+
+## API Contract
+GET /tasks - получить таски
+POST /tasks - создать новую
+GET /tasks/{id} - получить по id
+PATCH /tasks/{id} изменить по id
+DELETE /tasks/{id} удалить по id
+GET /tasks?is_completed=true полувчить только завершённые или нет
