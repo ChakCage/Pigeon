@@ -1,14 +1,16 @@
+from core.task_repository import TaskRepository
+
+
 class Task:
-    def __init__(self, id, title):
+    def __init__(self, id, title, description, is_completed, created_at):
         self.id = id
         self.title = title
-        self.completed = False
-
-    def complete(self):
-        self.completed = True
+        self.description = description
+        self.is_completed = is_completed
+        self.created_at = created_at
 
     def __str__(self):
-        return f"{self.id}: {self.title} - {self.completed}"
+        return f"{self.id}: {self.title} - {self.is_completed}"
 
 
 class TaskNotFoundError(Exception):
@@ -17,29 +19,50 @@ class TaskNotFoundError(Exception):
 
 class TaskService:
     def __init__(self):
-        self.tasks = []
+        self.repository = TaskRepository()
 
-    def add_task(self, title):
-        new_id = len(self.tasks) + 1
-        task = Task(new_id, title)
-        self.tasks.append(task)
-        return task
+    def _row_to_task(self, row):
+        return Task(
+            id=row[0],
+            title=row[1],
+            description=row[2],
+            is_completed=row[3],
+            created_at=row[4]
+        )
 
-    def list_tasks(self):
-        return self.tasks
+    def add_task(self, title, description=None):
+        row = self.repository.create(title, description)
+        return self._row_to_task(row)
 
-    def complete_task(self, task_id):
-        for task in self.tasks:
-            if task.id == task_id:
-                task.complete()
-                return task
+    def list_tasks(self, is_completed=None):
+        rows = self.repository.get_all(is_completed)
+        return [self._row_to_task(row) for row in rows]
 
-        raise TaskNotFoundError
+    def get_task(self, task_id):
+        row = self.repository.get_by_id(task_id)
+
+        if row is None:
+            raise TaskNotFoundError
+
+        return self._row_to_task(row)
+
+    def update_task(self, task_id, title, description, is_completed):
+        row = self.repository.update(
+            task_id,
+            title,
+            description,
+            is_completed
+        )
+
+        if row is None:
+            raise TaskNotFoundError
+
+        return self._row_to_task(row)
 
     def delete_task(self, task_id):
-        for task in self.tasks:
-            if task.id == task_id:
-                self.tasks.remove(task)
-                return
+        row = self.repository.delete(task_id)
 
-        raise TaskNotFoundError
+        if row is None:
+            raise TaskNotFoundError
+
+        return self._row_to_task(row)
